@@ -1,4 +1,4 @@
 window.onload = () => {
-  resizeCanvas();
+  court.resizeCanvas();
   loop();
 };

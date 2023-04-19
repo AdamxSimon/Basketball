@@ -1,6 +1,13 @@
 function loop() {
-  context.clearRect(0, 0, canvas.clientWidth, canvas.height);
-  ball.update();
-  ball.draw();
+  court.context.clearRect(0, 0, court.width, court.height);
+
+  court.hoop.drawPole();
+  court.hoop.drawBoard();
+
+  court.ball.update();
+  court.ball.draw();
+
+  court.hoop.drawHoop();
+
   requestAnimationFrame(loop);
 }

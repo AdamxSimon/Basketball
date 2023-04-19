@@ -7,5 +7,3 @@ class Physics {
     this.friction = 0.1;
   }
 }
-
-const physics = new Physics();
