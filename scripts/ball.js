@@ -1,166 +1,141 @@
 class Ball {
-  constructor(config = {}) {
-    this.court = config.court;
-
-    this.physics = config.physics;
+  constructor(court) {
+    this.court = court;
 
     this.isHeld = false;
 
-    this.size = config.size || 50;
+    this.size = 50;
     this.radius = this.size / 2;
 
-    this.color = config.color || "orange";
+    this.color = "orange";
 
-    this.x = config.x || this.radius;
-    this.y = config.y || this.radius;
+    this.x = this.radius;
+    this.y = this.radius;
 
-    this.holdX = 0;
-    this.holdY = 0;
+    this.xHolding = 0;
+    this.yHolding = 0;
 
-    this.lastHeldX = 0;
-    this.lastHeldY = 0;
+    this.xLastHeld = 0;
+    this.yLastHeld = 0;
 
     this.xSpeed = 0;
     this.ySpeed = 0;
 
-    this.maxSpeed = 1;
+    this.maxSpeed = 48;
 
-    this.court.canvas.addEventListener("mousedown", (event) =>
-      this.holdBall(event)
-    );
-    this.court.canvas.addEventListener("touchstart", (event) =>
-      this.holdBall(event)
-    );
-    this.court.canvas.addEventListener("mouseup", () => this.dropBall());
-    this.court.canvas.addEventListener("touchend", () => this.dropBall());
+    this.#addBallInteractionListeners();
   }
 
-  isInsideCircle(xPoint, yPoint, xCircle, yCircle, radius) {
-    return (xPoint - xCircle) ** 2 + (yPoint - yCircle) ** 2 <= radius ** 2;
+  #addBallInteractionListeners() {
+    const { canvas } = this.court;
+
+    canvas.addEventListener("mousedown", (event) => this.#holdBall(event));
+    canvas.addEventListener("touchstart", (event) => this.#holdBall(event));
+
+    canvas.addEventListener("mouseup", () => this.#releaseBall());
+    canvas.addEventListener("touchend", () => this.#releaseBall());
   }
 
-  holdBall(event) {
+  #holdBall(event) {
     const touch = event.touches?.[0];
 
     this.isHeld = true;
-    this.court.canvas.addEventListener("mousemove", (event) =>
-      this.moveBall(event)
-    );
-    this.court.canvas.addEventListener("touchmove", (event) =>
-      this.moveBall(event)
-    );
+
+    const { canvas } = this.court;
+
+    canvas.addEventListener("mousemove", (event) => this.#moveBall(event));
+    canvas.addEventListener("touchmove", (event) => this.#moveBall(event));
 
     if (touch) {
-      this.holdX = touch.clientX;
-      this.holdY = touch.clientY;
+      this.xHolding = touch.clientX;
+      this.yHolding = touch.clientY;
     } else {
-      this.holdX = event.clientX;
-      this.holdY = event.clientY;
+      this.xHolding = event.clientX;
+      this.yHolding = event.clientY;
     }
 
     this.xSpeed = 0;
     this.ySpeed = 0;
   }
 
-  dropBall() {
+  #releaseBall() {
     if (this.isHeld) {
       this.isHeld = false;
-      this.court.canvas.removeEventListener("mousemove", (event) =>
-        this.moveBall(event)
-      );
-      this.court.canvas.removeEventListener("touchmove", (event) =>
-        this.moveBall(event)
-      );
+
+      const { canvas } = this.court;
+
+      canvas.removeEventListener("mousemove", (event) => this.moveBall(event));
+      canvas.removeEventListener("touchmove", (event) => this.moveBall(event));
     }
   }
 
-  moveBall(event) {
+  #moveBall(event) {
     const touch = event.touches?.[0];
+
     if (touch) {
-      this.holdX = touch.clientX;
-      this.holdY = touch.clientY;
+      this.xHolding = touch.clientX;
+      this.yHolding = touch.clientY;
     } else {
-      this.holdX = event.clientX;
-      this.holdY = event.clientY;
+      this.xHolding = event.clientX;
+      this.yHolding = event.clientY;
     }
-  }
-
-  getCollisionPoints() {
-    return {
-      leftCollisionPoint: this.radius,
-      rightCollisionPoint: this.court.width - this.radius,
-      topCollisionPoint: this.radius,
-      bottomCollisionPoint: this.court.height - this.radius,
-    };
-  }
-
-  getCollisionPosition(xOutside, yOutside) {
-    const deltaX = xOutside - this.x;
-    const deltaY = yOutside - this.y;
-
-    const angle = Math.atan2(yOutside - this.y, xOutside - this.x);
-
-    return {
-      xNewCenter: xOutside - this.radius * Math.cos(angle),
-      yNewCenter: yOutside - this.radius * Math.sin(angle),
-    };
   }
 
   update() {
     if (this.isHeld) {
-      this.x = this.holdX;
-      this.y = this.holdY;
+      this.x = this.xHolding;
+      this.y = this.yHolding;
 
-      this.xSpeed = this.x - this.lastHeldX;
-      this.ySpeed = this.y - this.lastHeldY;
+      this.xSpeed = this.x - this.xLastHeld;
+      this.ySpeed = this.y - this.yLastHeld;
 
-      this.lastHeldX = this.x;
-      this.lastHeldY = this.y;
+      this.xLastHeld = this.x;
+      this.yLastHeld = this.y;
       return;
     }
 
-    const nextX = this.x + this.xSpeed;
-    const nextY = this.y + this.ySpeed;
+    const xNext = this.x + this.xSpeed;
+    const yNext = this.y + this.ySpeed;
+
+    const { hoop, physics } = this.court;
 
     const {
-      leftCollisionPoint,
-      rightCollisionPoint,
-      topCollisionPoint,
-      bottomCollisionPoint,
-    } = this.getCollisionPoints();
+      left: [xLeft, yLeft],
+      right: [xRight, yRight],
+    } = hoop.getRims();
 
-    const {
-      leftRim: [xLeftRim, yLeftRim],
-      rightRim: [xRightRim, yRightRim],
-    } = this.court.hoop.getRims();
-
-    const leftRimCollision = this.isInsideCircle(
-      xLeftRim,
-      yLeftRim,
-      nextX,
-      nextY,
+    const isCollidingWithLeftRim = physics.isPointInsideCircle(
+      xLeft,
+      yLeft,
+      xNext,
+      yNext,
       this.radius
     );
 
-    const rightRimCollision = this.isInsideCircle(
-      xRightRim,
-      yRightRim,
-      nextX,
-      nextY,
+    const isCollidingWithRightRim = physics.isPointInsideCircle(
+      xRight,
+      yRight,
+      xNext,
+      yNext,
       this.radius
     );
 
-    if (leftRimCollision) {
-      const { xNewCenter, yNewCenter } = this.getCollisionPosition(
-        xLeftRim,
-        yLeftRim
+    const { friction, gravity, loss } = physics;
+
+    if (isCollidingWithLeftRim) {
+      const { x, y } = physics.getBallCollisionPosition(
+        xLeft,
+        yLeft,
+        this.x,
+        this.y,
+        this.radius
       );
 
-      this.x = xNewCenter;
-      this.y = yNewCenter;
+      this.x = x;
+      this.y = y;
 
-      const xPositionDifference = this.x - xLeftRim;
-      const yPositionDifference = this.y - yLeftRim;
+      const xPositionDifference = this.x - xLeft;
+      const yPositionDifference = this.y - yLeft;
 
       const totalPositionDifference =
         Math.abs(xPositionDifference) + Math.abs(yPositionDifference);
@@ -173,20 +148,23 @@ class Ball {
       const totalSpeed = Math.abs(this.xSpeed) + Math.abs(this.ySpeed);
 
       this.xSpeed = totalSpeed * speedProportions.x;
-      this.ySpeed = totalSpeed * speedProportions.y;
+      this.ySpeed = totalSpeed * speedProportions.y + gravity;
     }
 
-    if (rightRimCollision) {
-      const { xNewCenter, yNewCenter } = this.getCollisionPosition(
-        xRightRim,
-        yRightRim
+    if (isCollidingWithRightRim) {
+      const { x, y } = physics.getBallCollisionPosition(
+        xRight,
+        yRight,
+        this.x,
+        this.y,
+        this.radius
       );
 
-      this.x = xNewCenter;
-      this.y = yNewCenter;
+      this.x = x;
+      this.y = y;
 
-      const xPositionDifference = this.x - xRightRim;
-      const yPositionDifference = this.y - yRightRim;
+      const xPositionDifference = this.x - xRight;
+      const yPositionDifference = this.y - yRight;
 
       const totalPositionDifference =
         Math.abs(xPositionDifference) + Math.abs(yPositionDifference);
@@ -199,53 +177,91 @@ class Ball {
       const totalSpeed = Math.abs(this.xSpeed) + Math.abs(this.ySpeed);
 
       this.xSpeed = totalSpeed * speedProportions.x;
-      this.ySpeed = totalSpeed * speedProportions.y;
+      this.ySpeed = totalSpeed * speedProportions.y + gravity;
     }
 
-    if (!leftRimCollision && !rightRimCollision) {
-      if (nextX > leftCollisionPoint && nextX < rightCollisionPoint) {
-        this.x = nextX;
-      } else if (nextX <= leftCollisionPoint) {
-        this.x = leftCollisionPoint;
-      } else if (nextX >= rightCollisionPoint) {
-        this.x = rightCollisionPoint;
+    const { left, right, top, bottom } = this.court.getWallCollisions(
+      this.radius
+    );
+
+    if (!isCollidingWithLeftRim && !isCollidingWithRightRim) {
+      const { xCenter, yCenter } = this.court.getCanvasCenter();
+
+      if (this.y > yCenter && hoop.isScoring) {
+        hoop.isScoring = false;
       }
 
-      if (nextY > topCollisionPoint && nextY < bottomCollisionPoint) {
-        this.y = nextY;
-      } else if (nextY <= topCollisionPoint) {
-        this.y = topCollisionPoint;
-      } else if (nextY >= bottomCollisionPoint) {
-        this.y = bottomCollisionPoint;
+      const shouldRegisterPoint =
+        !hoop.isScoring &&
+        this.y < yCenter &&
+        physics.isPointInsideCircle(
+          xCenter,
+          yCenter + this.radius,
+          xNext,
+          yNext,
+          this.radius
+        );
+
+      if (shouldRegisterPoint) {
+        hoop.isScoring = true;
+        hoop.registerPoint();
       }
 
-      if (this.x === leftCollisionPoint || this.x === rightCollisionPoint) {
-        this.xSpeed = -this.xSpeed;
+      if (xNext > left && xNext < right) {
+        this.x = xNext;
+      } else if (xNext <= left) {
+        this.x = left;
+      } else if (xNext >= right) {
+        this.x = right;
       }
 
-      if (this.y === bottomCollisionPoint) {
-        if (this.xSpeed > this.physics.friction) {
-          this.xSpeed -= this.physics.friction;
-        } else if (this.xSpeed < -this.physics.friction) {
-          this.xSpeed += this.physics.friction;
+      if (yNext > top && yNext < bottom) {
+        this.y = yNext;
+      } else if (yNext <= top) {
+        this.y = top;
+      } else if (yNext >= bottom) {
+        this.y = bottom;
+      }
+
+      if (this.x === left || this.x === right) {
+        const directionFlag = this.xSpeed >= 0 ? 1 : -1;
+        this.xSpeed = -(this.xSpeed - loss * directionFlag);
+      }
+
+      if (this.y === bottom) {
+        if (this.xSpeed > friction) {
+          this.xSpeed -= friction;
+        } else if (this.xSpeed < -friction) {
+          this.xSpeed += friction;
         } else {
           this.xSpeed = 0;
         }
       }
 
-      if (this.y > topCollisionPoint && this.y < bottomCollisionPoint) {
-        this.ySpeed += this.physics.gravity;
+      if (this.y > top && this.y < bottom) {
+        this.ySpeed += gravity;
       } else {
-        this.ySpeed = -(this.ySpeed - this.physics.loss);
+        this.ySpeed = -(this.ySpeed - loss + gravity);
       }
     }
+
+    this.xSpeed =
+      this.xSpeed >= 0
+        ? Math.min(this.xSpeed, this.maxSpeed)
+        : Math.max(this.xSpeed, -this.maxSpeed);
+    this.ySpeed =
+      this.ySpeed >= 0
+        ? Math.min(this.ySpeed, this.maxSpeed)
+        : Math.max(this.ySpeed, -this.maxSpeed);
   }
 
   draw() {
-    this.court.context.beginPath();
-    this.court.context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
-    this.court.context.fillStyle = this.color;
-    this.court.context.fill();
-    this.court.context.stroke();
+    const { context } = this.court;
+
+    context.beginPath();
+    context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+    context.fillStyle = this.color;
+    context.fill();
+    context.stroke();
   }
 }

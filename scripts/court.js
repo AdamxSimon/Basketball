@@ -5,7 +5,7 @@ class Court {
 
     this.physics = new Physics();
 
-    this.ball = new Ball({ court: this, physics: this.physics });
+    this.ball = new Ball(this);
     this.hoop = new Hoop(this);
 
     this.#addResizeListener();
@@ -25,8 +25,17 @@ class Court {
 
   getCanvasCenter() {
     return {
-      centerX: Math.floor(this.width / 2),
-      centerY: Math.floor(this.height / 2),
+      xCenter: Math.floor(this.width / 2),
+      yCenter: Math.floor(this.height / 2),
+    };
+  }
+
+  getWallCollisions(radius) {
+    return {
+      left: radius,
+      right: this.width - radius,
+      top: radius,
+      bottom: this.height - radius,
     };
   }
 }

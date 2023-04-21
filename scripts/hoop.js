@@ -11,62 +11,82 @@ class Hoop {
 
     this.poleWidth = 20;
     this.poleColor = "black";
+
+    this.isScoring = false;
+    this.points = 0;
   }
 
   getRims() {
-    const { centerX, centerY } = this.court.getCanvasCenter();
+    const { xCenter, yCenter } = this.court.getCanvasCenter();
 
     const halfHoopWidth = Math.floor(this.hoopWidth / 2);
 
-    const leftRim = [centerX - halfHoopWidth, centerY];
-    const rightRim = [centerX + halfHoopWidth, centerY];
+    const left = [xCenter - halfHoopWidth, yCenter];
+    const right = [xCenter + halfHoopWidth, yCenter];
 
-    return { leftRim, rightRim };
+    return { left, right };
+  }
+
+  registerPoint() {
+    if (this.points < 99) {
+      this.points += 1;
+    }
   }
 
   drawPole() {
-    const { centerX, centerY } = this.court.getCanvasCenter();
+    const { context } = this.court;
+    const { xCenter, yCenter } = this.court.getCanvasCenter();
 
     const halfPoleWidth = Math.floor(this.poleWidth / 2);
 
-    this.court.context.beginPath();
-    this.court.context.rect(
-      centerX - halfPoleWidth,
-      centerY,
+    context.beginPath();
+    context.rect(
+      xCenter - halfPoleWidth,
+      yCenter,
       this.poleWidth,
-      this.court.height - centerY
+      this.court.height - yCenter
     );
-    this.court.context.fillStyle = this.poleColor;
-    this.court.context.fill();
+    context.fillStyle = this.poleColor;
+    context.fill();
   }
 
   drawBoard() {
-    const { centerX, centerY } = this.court.getCanvasCenter();
+    const { context } = this.court;
+    const { xCenter, yCenter } = this.court.getCanvasCenter();
 
     const halfBoardWidth = Math.floor(this.boardWidth / 2);
     const halfBoardHeight = Math.floor(this.boardHeight / 2);
 
-    this.court.context.beginPath();
-    this.court.context.roundRect(
-      centerX - halfBoardWidth,
-      centerY - halfBoardHeight - this.boardOffset,
+    context.beginPath();
+    context.roundRect(
+      xCenter - halfBoardWidth,
+      yCenter - halfBoardHeight - this.boardOffset,
       this.boardWidth,
       this.boardHeight,
       [10]
     );
-    this.court.context.fillStyle = this.boardColor;
-    this.court.context.fill();
-    this.court.context.stroke();
+    context.fillStyle = this.boardColor;
+    context.fill();
+    context.stroke();
+
+    const pointsAsString =
+      this.points < 10 ? `0${this.points}` : `${this.points}`;
+
+    context.font = "48px helvetica";
+    context.fillStyle = "black";
+    context.textAlign = "center";
+    context.fillText(pointsAsString, xCenter, yCenter - 25);
   }
 
   drawHoop() {
-    const { centerX, centerY } = this.court.getCanvasCenter();
+    const { context } = this.court;
+    const { xCenter, yCenter } = this.court.getCanvasCenter();
 
     const halfHoopWidth = Math.floor(this.hoopWidth / 2);
 
-    this.court.context.beginPath();
-    this.court.context.moveTo(centerX - halfHoopWidth, centerY);
-    this.court.context.lineTo(centerX + halfHoopWidth, centerY);
-    this.court.context.stroke();
+    context.beginPath();
+    context.moveTo(xCenter - halfHoopWidth, yCenter);
+    context.lineTo(xCenter + halfHoopWidth, yCenter);
+    context.stroke();
   }
 }
