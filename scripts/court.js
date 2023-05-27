@@ -3,6 +3,9 @@ class Court {
     this.canvas = document.getElementById("canvas");
     this.context = this.canvas.getContext("2d");
 
+    this.fps = 60;
+    this.frame = 1 / this.fps;
+
     this.physics = new Physics();
 
     this.ball = new Ball(this);

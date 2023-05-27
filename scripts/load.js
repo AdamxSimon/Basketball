@@ -1,4 +1,4 @@
 window.onload = () => {
   court.resizeCanvas();
-  loop();
+  requestAnimationFrame(loop);
 };
